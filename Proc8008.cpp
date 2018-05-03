@@ -118,7 +118,7 @@ unsigned char Proc8008::arith(unsigned char opcode) {
                 Zero = 1;
             }
             Parity = ~(registerFile[A] | 254);
-            Carry = checkCarry >> 8;
+            Carry = (checkCarry & 0x0100) >> 8;
             return 2;
         }
         else {
@@ -152,7 +152,7 @@ unsigned char Proc8008::arith(unsigned char opcode) {
                 Zero = 1;
             }
             Parity = ~(registerFile[A] | 254);
-            Carry = checkCarry >> 8;
+            Carry = (checkCarry & 0x0100) >> 8;
             return 2;
         }
         else {
@@ -180,7 +180,7 @@ unsigned char Proc8008::arith(unsigned char opcode) {
                 Zero = 1;
             }
             Parity = ~(registerFile[A] | 254);
-            Carry = checkCarry >> 8;
+            Carry = (checkCarry & 0x0100) >> 8;
             return 2;
         }
         else {
@@ -200,7 +200,7 @@ unsigned char Proc8008::arith(unsigned char opcode) {
                 Zero = 1;
             }
             Parity = ~(registerFile[A] | 254);
-            Carry = checkCarry >> 8;
+            Carry = (checkCarry & 0x0100) >> 8;
             return 2;
         }
         else {
@@ -219,7 +219,7 @@ unsigned char Proc8008::arith(unsigned char opcode) {
                 Zero = 1;
             }
             Parity = ~(registerFile[A] | 254);
-            Carry = checkCarry >> 8;
+            Carry = (checkCarry & 0x0100) >> 8;
             return 2;
         }
         else {
@@ -238,7 +238,7 @@ unsigned char Proc8008::arith(unsigned char opcode) {
                 Zero = 1;
             }
             Parity = ~(registerFile[A] | 254);
-            Carry = checkCarry >> 8;
+            Carry = (checkCarry & 0x0100) >> 8;
             return 2;
         }
         else {
@@ -251,7 +251,7 @@ unsigned char Proc8008::arith(unsigned char opcode) {
         Zero = 1;
     }
     Parity = ~(registerFile[A] | 254);
-    Carry = checkCarry >> 8;
+    Carry = (checkCarry & 0x0100) >> 8;
     return 1;
 }
 
@@ -281,13 +281,15 @@ unsigned char Proc8008::jmpcallret(unsigned char opcode) {
     unsigned char op1 = (opcode & 0x38) >> 3;
     unsigned short addr = registerFile[H];
     addr = (addr << 8) | registerFile[L];
+    bool jumpOccurs = false;
     if (op0 == 0x00) {
         if ((Carry == 0 && op1 == 0) || (Zero == 0 && op1 == 1) || 
             (Sign == 0 && op1 == 2) || (Parity == 0 && op1 == 3) ||
             (Carry == 1 && op1 == 4) || (Zero == 1 && op1 == 5) ||
             (Sign == 1 && op1 == 6) || (Parity == 1 && op1 == 7)) { 
-            stack.top() = memory[pc + 2]; 
-            stack.top() = (stack.top() << 8) | memory[pc + 1];
+            stack.top() = memory[pc + 1]; 
+            stack.top() = (stack.top() << 8) | memory[pc + 2];
+            jumpOccurs = true;
         }
     }
     else if (op0 == 0x02) {
@@ -296,8 +298,9 @@ unsigned char Proc8008::jmpcallret(unsigned char opcode) {
             (Carry == 1 && op1 == 4) || (Zero == 1 && op1 == 5) ||
             (Sign == 1 && op1 == 6) || (Parity == 1 && op1 == 7)) {
             stack.push(pc); 
-            stack.top() = memory[pc + 2]; 
-            stack.top() = (stack.top() << 8) | memory[pc + 1];
+            stack.top() = memory[pc + 1]; 
+            stack.top() = (stack.top() << 8) | memory[pc + 2];
+            jumpOccurs = true;
         }
     }
     else if (op0 == 0x03) {
@@ -306,25 +309,30 @@ unsigned char Proc8008::jmpcallret(unsigned char opcode) {
             (Carry == 1 && op1 == 4) || (Zero == 1 && op1 == 5) ||
             (Sign == 1 && op1 == 6) || (Parity == 1 && op1 == 7)) {
             stack.pop();
+            jumpOccurs = true;
             }
     }
     else if (op0 == 0x04) {
-        stack.top() = memory[pc + 2]; 
-        stack.top() = (stack.top() << 8) | memory[pc + 1];
+        stack.top() = memory[pc + 1]; 
+        stack.top() = (stack.top() << 8) | memory[pc + 2];
+        jumpOccurs = true;
     }
     else if (op0 == 0x05) {
         stack.push(pc);
         stack.top() = (0 | op1) << 3;
+        jumpOccurs = true;
     }
     else if (op0 == 0x06) {
         stack.push(pc); 
-        stack.top() = memory[pc + 2]; 
-        stack.top() = (stack.top() << 8) | memory[pc + 1];
+        stack.top() = memory[pc + 1]; 
+        stack.top() = (stack.top() << 8) | memory[pc + 2];
+        jumpOccurs = true;
     }
     else {
        stack.pop(); 
+       jumpOccurs = true;
     }
-    return 3;
+    return (jumpOccurs) ? 0 : 3;
 }
 
 unsigned char Proc8008::inout(unsigned char opcode) {
