@@ -166,7 +166,7 @@ unsigned char Proc8008::arith(unsigned char opcode) {
             }
         }
     }
-    else if (op1 == 0x02 || op1 == 0x07) {
+    else if (op1 == 0x02) {
         if (op0 == 0x07) {
             checkCarry = registerFile[A] - memory[addr];
             registerFile[A] = checkCarry;
@@ -244,6 +244,23 @@ unsigned char Proc8008::arith(unsigned char opcode) {
         else {
             registerFile[A] |= registerFile[op0];
         }
+    }
+    else if (op1 == 0x07) {
+       if (op0 == 0x07) {
+            checkCarry = registerFile[A] - memory[addr];
+            registerFile[A] = checkCarry;
+            return 1;
+        }
+        else if (op0 == 0x04) {
+            checkCarry = registerFile[A] - memory[stack.top() + 1];
+            registerFile[A] = checkCarry;
+            return 1;
+        }
+        else {
+            checkCarry = registerFile[A] - registerFile[op0];
+            registerFile[A] = checkCarry;
+            return 1;
+        } 
     }
     Sign = registerFile[A] >> 7;
     Zero = 0;
