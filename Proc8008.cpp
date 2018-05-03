@@ -44,6 +44,9 @@ Proc8008::Proc8008() : memory(1024), InstructionSet(256) {
     for (unsigned char i = 0x02; i <= 0x1A; i = i + 0x08) {//Rotate
         InstructionSet[i] = &Proc8008::rotate;
     }
+    for (unsigned char i = 0x41; i <= 0x7F; i = i + 0x02) {//Rotate
+        InstructionSet[i] = &Proc8008::inout;
+    }
     InstructionSet[0x00] = &Proc8008::hlt; //Halt 1
     InstructionSet[0x01] = &Proc8008::hlt; //Halt 2
     InstructionSet[0xFF] = &Proc8008::hlt; //Halt bueno
@@ -322,6 +325,22 @@ unsigned char Proc8008::jmpcallret(unsigned char opcode) {
        stack.pop(); 
     }
     return 3;
+}
+
+unsigned char Proc8008::inout(unsigned char opcode) {
+    short a;
+    short MMM = (opcode & 0x0E) >> 1;
+    short RR = (opcode & 0x30) >> 4;
+    short RRMMM = ((opcode & 0x30) | (opcode & 0x0E)) >> 1;
+    if (RR) {
+        std::cout << "Port " << RRMMM << ": Register A = " << registerFile[A] << std::endl;
+    }
+    else {
+        std::cout << "Port " << MMM << ": Register A = " << std::endl;
+        std::cin >> a;
+        registerFile[A] = a;
+    }
+    return 1;
 }
 
 unsigned char Proc8008::nop(unsigned char opcode) {
