@@ -9,20 +9,20 @@ Proc8008::Proc8008() : memory(1024), InstructionSet(256) {
     is.seekg(0, std::ios::beg);
     is.read((char*)memory.data(), size);
     stack.push(0); //initializes pc
-    InstructionSet[0x00] = &Proc8008::nop; //Nop Halt 1
-    InstructionSet[0x01] = &Proc8008::nop; //Nop Halt 2
-    for (unsigned char i = 0x0F; i <= 0x3F; i = i + 0x08) { //Nop Return
-        InstructionSet[i] = &Proc8008::nop;
+    for (unsigned char i = 0x03; i <= 0x3F; i = i + 0x04) { //Return
+        InstructionSet[i] = &Proc8008::jmpcallret;
+        i = i + 2;
+        InstructionSet[i] = &Proc8008::jmpcallret;
+        i = i + 2;
+        InstructionSet[i] = &Proc8008::jmpcallret;
     }
     for (unsigned char i = 0x22; i <= 0x3A; i = i + 0x08) { //Nop Void
         InstructionSet[i] = &Proc8008::nop;
     }
     InstructionSet[0x38] = &Proc8008::nop; //Nop Void
     InstructionSet[0x39] = &Proc8008::nop; //Nop Void
-    for (unsigned char i = 0x4C; i <= 0x7E; i = i + 0x06) { //Nop Jump y Call
-        InstructionSet[i] = &Proc8008::nop;
-        i = i + 0x02;
-        InstructionSet[i] = &Proc8008::nop;
+    for (unsigned char i = 0x40; i <= 0x7E; i = i + 0x02) { //Jump y Call
+        InstructionSet[i] = &Proc8008::jmpcallret;
     }
     for (unsigned char i = 0xC0; i <= 0xFE; ++i) { //Load to register/memory
         InstructionSet[i] = &Proc8008::mov;
@@ -44,7 +44,9 @@ Proc8008::Proc8008() : memory(1024), InstructionSet(256) {
     for (unsigned char i = 0x02; i <= 0x1A; i = i + 0x08) {//Rotate
         InstructionSet[i] = &Proc8008::rotate;
     }
-    InstructionSet[0xFF] = &Proc8008::hlt;
+    InstructionSet[0x00] = &Proc8008::hlt; //Halt 1
+    InstructionSet[0x01] = &Proc8008::hlt; //Halt 2
+    InstructionSet[0xFF] = &Proc8008::hlt; //Halt bueno
 }
 
 unsigned char Proc8008::hlt(unsigned char opcode) {
@@ -270,8 +272,55 @@ unsigned char Proc8008::rotate(unsigned char opcode) {
     return 1;
 }
 
-unsigned char Proc8008::jmpcallret(unsigned char) {
-    
+unsigned char Proc8008::jmpcallret(unsigned char opcode) {
+    unsigned short pc = stack.top();
+    unsigned char op0 = opcode & 0x07;
+    unsigned char op1 = (opcode & 0x38) >> 3;
+    unsigned short addr = registerFile[H];
+    addr = (addr << 8) | registerFile[L];
+    if (op0 == 0x00) {
+        if ((Carry == 0 && op1 == 0) || (Zero == 0 && op1 == 1) || 
+            (Sign == 0 && op1 == 2) || (Parity == 0 && op1 == 3) ||
+            (Carry == 1 && op1 == 4) || (Zero == 1 && op1 == 5) ||
+            (Sign == 1 && op1 == 6) || (Parity == 1 && op1 == 7)) { 
+            stack.top() = memory[pc + 2]; 
+            stack.top() = (stack.top() << 8) | memory[pc + 1];
+        }
+    }
+    else if (op0 == 0x02) {
+        if ((Carry == 0 && op1 == 0) || (Zero == 0 && op1 == 1) || 
+            (Sign == 0 && op1 == 2) || (Parity == 0 && op1 == 3) ||
+            (Carry == 1 && op1 == 4) || (Zero == 1 && op1 == 5) ||
+            (Sign == 1 && op1 == 6) || (Parity == 1 && op1 == 7)) {
+            stack.push(pc); 
+            stack.top() = memory[pc + 2]; 
+            stack.top() = (stack.top() << 8) | memory[pc + 1];
+        }
+    }
+    else if (op0 == 0x03) {
+        if ((Carry == 0 && op1 == 0) || (Zero == 0 && op1 == 1) || 
+            (Sign == 0 && op1 == 2) || (Parity == 0 && op1 == 3) ||
+            (Carry == 1 && op1 == 4) || (Zero == 1 && op1 == 5) ||
+            (Sign == 1 && op1 == 6) || (Parity == 1 && op1 == 7)) {
+            stack.pop();
+            }
+    }
+    else if (op0 == 0x04) {
+        stack.top() = memory[pc + 2]; 
+        stack.top() = (stack.top() << 8) | memory[pc + 1];
+    }
+    else if (op0 == 0x05) {
+        stack.push(pc);
+        stack.top() = (0 | op1) << 3;
+    }
+    else if (op0 == 0x06) {
+        stack.push(pc); 
+        stack.top() = memory[pc + 2]; 
+        stack.top() = (stack.top() << 8) | memory[pc + 1];
+    }
+    else {
+       stack.pop(); 
+    }
     return 3;
 }
 
