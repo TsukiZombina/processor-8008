@@ -9,6 +9,21 @@ Proc8008::Proc8008() : memory(1024), InstructionSet(256) {
     is.seekg(0, std::ios::beg);
     is.read((char*)memory.data(), size);
     stack.push(0); //initializes pc
+    InstructionSet[0x00] = &Proc8008::nop; //Nop Halt 1
+    InstructionSet[0x01] = &Proc8008::nop; //Nop Halt 2
+    for (unsigned char i = 0x0F; i <= 0x3F; i = i + 0x08) { //Nop Return
+        InstructionSet[i] = &Proc8008::nop;
+    }
+    for (unsigned char i = 0x22; i <= 0x3A; i = i + 0x08) { //Nop Void
+        InstructionSet[i] = &Proc8008::nop;
+    }
+    InstructionSet[0x38] = &Proc8008::nop; //Nop Void
+    InstructionSet[0x39] = &Proc8008::nop; //Nop Void
+    for (unsigned char i = 0x4C; i <= 0x7E; i = i + 0x06) { //Nop Jump y Call
+        InstructionSet[i] = &Proc8008::nop;
+        i = i + 0x02;
+        InstructionSet[i] = &Proc8008::nop;
+    }
     for (unsigned char i = 0xC0; i <= 0xFE; ++i) { //Load to register/memory
         InstructionSet[i] = &Proc8008::mov;
     }
@@ -239,25 +254,30 @@ unsigned char Proc8008::rotate(unsigned char opcode) {
     unsigned char oldCarry = Carry;
     unsigned char op1 = (opcode & 0x38) >> 3;
     if (op1 == 0x00) {
+        registerFile[A] = ((registerFile[A] & 0x80) >> 7) | (registerFile[A] << 1);
+    }
+    else if (op1 == 0x01) {
+        registerFile[A] = ((registerFile[A] & 0x01) << 7) | (registerFile[A] >> 1);
+    }
+    else if (op1 == 0x10) {
         Carry = registerFile[A] & 0x80;
         registerFile[A] = oldCarry | (registerFile[A] << 1);
     }
-    else if (op1 == 0x01) {
+    else {
         Carry = registerFile[A] & 0x01;
         registerFile[A] = (oldCarry << 7) | (registerFile[A] >> 1);
     }
-    else if (op1 == 0x10) {
-        
-    }
-    else {
-        
-    }
-    Carry = checkCarry >> 8;
     return 1;
 }
 
-unsigned char nop(unsigned char opcode) {
+unsigned char Proc8008::jmpcallret(unsigned char) {
+    
+    return 3;
+}
+
+unsigned char Proc8008::nop(unsigned char opcode) {
     std::cout << "This Operation Code is invalid" <<std::endl;
+    return 1;
 }
 
 void Proc8008::execute() {

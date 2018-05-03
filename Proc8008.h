@@ -29,6 +29,8 @@ class Proc8008 {
     unsigned char incDec(unsigned char);
     unsigned char arith(unsigned char);
     unsigned char rotate(unsigned char);
+    unsigned char nop(unsigned char);
+    unsigned char jmpcallret(unsigned char);
 
     public:
         Proc8008();
